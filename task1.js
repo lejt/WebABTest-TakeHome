@@ -2,7 +2,6 @@
 
 (() => {
   // constants
-  // const FLEX_CONTAINER = '.contact-form__inner';
   const FORM_PARENT = '.contact-form__form';
   const FORM_SELECTOR = '.hbspt-form';
   const FORM_STEP_1_FIELDS = '.form-columns-2, .hs_email';
