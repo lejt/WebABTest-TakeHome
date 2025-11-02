@@ -35,13 +35,10 @@
           <span class="page-counter">1/1</span>
           <button class="nav-arrow right">&gt;</button>
       </div>
-      <span class="chevron-icon">&#9650</span>
+      <!-- Chevron points UP when closed (ready to open UP) -->
+      <span class="chevron-icon">&#9650;</span> 
     </div>
   `;
-
-  // disable transition and hide container for initial drawer setup
-  stickyDrawerContainer.style.transition = 'none';
-  stickyDrawerContainer.style.visibility = 'hidden';
 
   let currentPage = 1;
   let totalPages = 1;
@@ -64,14 +61,30 @@
   const closeDrawer = () => {
     if (stickyDrawerContainer.classList.contains('is-open')) {
       stickyDrawerContainer.classList.remove('is-open');
-      overlay.remove();
-      document.body.style.overflow = '';
+
+      setTimeout(() => {
+        overlay.remove();
+        document.body.style.overflow = '';
+
+        const scrollHeight = document.documentElement.scrollHeight;
+        const clientHeight = window.innerHeight;
+
+        // handle scroll correction AFTER the 500ms CSS transition finishes
+        const newMaxScroll = scrollHeight - clientHeight;
+        const currentScrollPosition = window.scrollY;
+
+        if (currentScrollPosition > newMaxScroll && newMaxScroll >= 0) {
+          window.scrollTo(0, newMaxScroll);
+        }
+      }, 500);
     }
   };
+
   const openDrawer = () => {
     if (!stickyDrawerContainer.classList.contains('is-open')) {
-      stickyDrawerContainer.classList.add('is-open');
       document.body.appendChild(overlay);
+
+      stickyDrawerContainer.classList.add('is-open');
       updatePaginationUI();
     }
   };
@@ -148,20 +161,17 @@
     toolTipContent.className = 'tooltip-content';
 
     if (data) {
-      // --- Data Injected ---
       const types = data.types.map((t) => t.type.name).join(', ');
       slideTitle.textContent = data.name.toUpperCase();
       imageContainer.innerHTML = `<img 
         src="${data.sprites.front_default}" 
         alt="${data.name}" 
         onerror="this.src='https://placehold.co/64x64/CCCCCC/333333?text=IMG'"
-        style="height:64px; width:64px; margin: 0 auto;"
       >`;
       description.textContent = `ID: ${data.id}. Type: ${types}`;
       button.textContent = 'View Details';
-      toolTipContent.textContent = 'Data from PokeAPI';
+      toolTipContent.textContent = `Weight: ${data.weight * 1000} grams`;
     } else {
-      // --- Loading/Placeholder ---
       slideTitle.textContent = 'Loading...';
       description.textContent = 'Fetching data from API...';
       imageContainer.textContent = 'Image Slot';
@@ -191,18 +201,6 @@
     }
   };
 
-  // forces the positioning of the sticker header (instantaneous because no transitions), then re-enable transitions, and make visible
-  const setupInitialPosition = () => {
-    const bodyHeight = Math.ceil(stickyDrawerBody.offsetHeight);
-
-    stickyDrawerContainer.style.transform = `translateY(${bodyHeight}px)`;
-    stickyDrawerContainer.offsetHeight;
-
-    stickyDrawerContainer.style.transition =
-      'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-    stickyDrawerContainer.style.visibility = 'visible';
-  };
-
   const fetchPokemonData = async () => {
     isLoading = true;
     try {
@@ -210,14 +208,21 @@
       if (!response.ok) throw new Error('Failed to fetch Pokémon list');
       const data = await response.json();
 
-      const detailedData = data.results.map((p) =>
-        fetch(p.url).then((res) => {
-          if (!res.ok) throw new Error(`Failed to fetch details for ${p.name}`);
-          return res.json();
-        })
-      );
+      const detailPromises = data.results.map((p) => fetch(p.url));
+      const detailResponses = await Promise.all(detailPromises);
 
-      pokemonData = await Promise.all(detailedData);
+      const jsonPromises = detailResponses.map((res, index) => {
+        const pokemonName = data.results[index].name;
+
+        if (!res.ok) {
+          throw new Error(
+            `Failed to fetch details for ${pokemonName}. Status: ${res.status}`
+          );
+        }
+        return res.json();
+      });
+
+      pokemonData = await Promise.all(jsonPromises);
     } catch (error) {
       console.error('API Error: Could not load Pokémon data.', error);
     } finally {
@@ -266,7 +271,7 @@
 
     overlay.addEventListener('click', closeDrawer);
 
-    // Pagination
+    // pagination
     stickyDrawerHeader
       .querySelector('.nav-arrow.left')
       .addEventListener('click', (e) => {
@@ -286,23 +291,15 @@
     window.addEventListener(
       'resize',
       debounce(() => {
-        if (!stickyDrawerContainer.classList.contains('is-open')) {
-          setupInitialPosition();
-        }
         updatePaginationUI();
       }, 100)
     );
   };
 
-  populateSlider();
-
   stickyDrawerBody.appendChild(sliderWrapper);
   stickyDrawerContainer.append(stickyDrawerHeader, stickyDrawerBody);
   document.body.appendChild(stickyDrawerContainer);
 
-  window.requestAnimationFrame(() => {
-    setupInitialPosition();
-    initListeners();
-    fetchPokemonData();
-  });
+  initListeners();
+  fetchPokemonData();
 })();
