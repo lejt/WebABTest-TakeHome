@@ -1,7 +1,6 @@
-// change the target for submit to css change to blue since it is affecting other tasks
-
 (() => {
   // constants
+  const AB_ELEMENT_ID = 'data-ab-element-id';
   const FORM_PARENT = '.contact-form__form';
   const FORM_SELECTOR = '.hbspt-form';
   const FORM_STEP_1_FIELDS = '.form-columns-2, .hs_email';
@@ -37,12 +36,12 @@
     const injectedButtonWrapper = document.createElement('div');
     const injectedButton = document.createElement('button');
 
-    injectedParagraph.setAttribute('data-ab-element-id', 'injected-paragraph');
+    injectedParagraph.setAttribute(AB_ELEMENT_ID, 'injected-paragraph');
     injectedButtonWrapper.setAttribute(
-      'data-ab-element-id',
+      AB_ELEMENT_ID,
       'injected-button-wrapper'
     );
-    injectedButton.setAttribute('data-ab-element-id', 'open-modal-btn');
+    injectedButton.setAttribute(AB_ELEMENT_ID, 'open-modal-btn');
     injectedHeader.textContent = INJECTED_HEADER_TEXT;
     injectedParagraph.textContent = INJECTED_PARAGRAPH_TEXT;
     injectedButton.textContent = INJECTED_BUTTON_TEXT;
@@ -64,11 +63,11 @@
     const modalFooter = document.createElement('div');
     const modalClose = document.createElement('button');
 
-    modal.setAttribute('data-ab-element-id', 'form-modal');
-    modalClose.setAttribute('data-ab-element-id', 'modal-close');
-    modalHeader.setAttribute('data-ab-element-id', 'modal-header');
-    modalBody.setAttribute('data-ab-element-id', 'modal-body');
-    modalFooter.setAttribute('data-ab-element-id', 'modal-footer');
+    modal.setAttribute(AB_ELEMENT_ID, 'form-modal');
+    modalClose.setAttribute(AB_ELEMENT_ID, 'modal-close');
+    modalHeader.setAttribute(AB_ELEMENT_ID, 'modal-header');
+    modalBody.setAttribute(AB_ELEMENT_ID, 'modal-body');
+    modalFooter.setAttribute(AB_ELEMENT_ID, 'modal-footer');
 
     modalClose.textContent = MODAL_CLOSE;
 
@@ -91,10 +90,13 @@
     const modalStep1Fields = hubSpotForm.querySelectorAll(FORM_STEP_1_FIELDS);
     const modalStep2Fields = hubSpotForm.querySelectorAll(FORM_STEP_2_FIELDS);
     const modalOmittedFields = hubSpotForm.querySelectorAll(FORM_OMITTED);
-    // const modalErrorMessages = hubSpotForm.querySelectorAll(FORM_ERROR_MESSAGES);
 
     const { injectedWrapper, injectedButton } = createLandingContent();
     const { modal, modalBody, modalFooter } = createModal();
+
+    if (!formContainer) {
+      return;
+    }
 
     const overlay = document.createElement('div');
     const progressWrapper = document.createElement('div');
@@ -104,14 +106,15 @@
     const modalStep2 = document.createElement('div');
     const modalStep3 = document.createElement('div');
     const modalStep3Message = document.createElement('p');
-    formContainer.setAttribute('data-ab-element-id', 'form-container');
-    overlay.setAttribute('data-ab-element-id', 'injected-overlay');
-    progressWrapper.setAttribute('data-ab-element-id', 'progress-wrapper');
-    modalBack.setAttribute('data-ab-element-id', 'modal-back');
-    modalNext.setAttribute('data-ab-element-id', 'modal-next');
-    modalStep1.setAttribute('data-ab-element-id', 'modal-step');
-    modalStep2.setAttribute('data-ab-element-id', 'modal-step');
-    modalStep3.setAttribute('data-ab-element-id', 'modal-step');
+
+    formContainer.setAttribute(AB_ELEMENT_ID, 'form-container');
+    overlay.setAttribute(AB_ELEMENT_ID, 'injected-overlay');
+    progressWrapper.setAttribute(AB_ELEMENT_ID, 'progress-wrapper');
+    modalBack.setAttribute(AB_ELEMENT_ID, 'modal-back');
+    modalNext.setAttribute(AB_ELEMENT_ID, 'modal-next');
+    modalStep1.setAttribute(AB_ELEMENT_ID, 'modal-step');
+    modalStep2.setAttribute(AB_ELEMENT_ID, 'modal-step');
+    modalStep3.setAttribute(AB_ELEMENT_ID, 'modal-step');
     modalStep1.classList.add('active');
 
     modalNext.textContent = MODAL_NEXT;
@@ -124,25 +127,26 @@
     const validationFieldSets = [modalStep1Fields, modalStep2Fields];
     const stepValidationStatus = [false, false, false];
 
-    // event listeners
-    injectedButton.addEventListener('click', () => {
-      modal.showModal();
-    });
+    const initEventListeners = () => {
+      injectedButton.addEventListener('click', () => {
+        modal.showModal();
+      });
 
-    document.addEventListener('click', (e) => {
-      const clickedInsideInjectedWrapper = formContainer.contains(e.target);
-      if (!clickedInsideInjectedWrapper) {
-        overlay.remove();
-      }
-    });
-    overlay.addEventListener('click', (e) => {
-      if (!injectedWrapper.contains(e.target)) {
-        overlay.remove();
-      }
-    });
+      document.addEventListener('click', (e) => {
+        const clickedInsideInjectedWrapper = formContainer.contains(e.target);
+        if (!clickedInsideInjectedWrapper) {
+          overlay.remove();
+        }
+      });
+      overlay.addEventListener('click', (e) => {
+        if (!injectedWrapper.contains(e.target)) {
+          overlay.remove();
+        }
+      });
 
-    modalNext.addEventListener('click', () => handleStepChange(1));
-    modalBack.addEventListener('click', () => handleStepChange(-1));
+      modalNext.addEventListener('click', () => handleStepChange(1));
+      modalBack.addEventListener('click', () => handleStepChange(-1));
+    };
 
     const handleStepChange = (increment) => {
       if (increment === 1) {
@@ -311,7 +315,7 @@
     };
 
     const submitButton = hubSpotForm.querySelector('input[type="submit"]');
-    submitButton.setAttribute('data-ab-element-id', 'form-submit');
+    submitButton.setAttribute(AB_ELEMENT_ID, 'form-submit');
 
     if (submitButton) {
       submitButton.value = 'Submit';
@@ -323,7 +327,7 @@
         if (validateFields(step2Fields)) {
           stepValidationStatus[1] = true;
 
-          // Dispatch a native 'submit' event to trigger HubSpot's internal AJAX handler
+          // dispatch a native 'submit' event to trigger HubSpot's internal AJAX handler
           hubSpotForm.dispatchEvent(new Event('submit', { bubbles: true }));
 
           stepValidationStatus[2] = true;
@@ -335,16 +339,16 @@
       });
     }
 
-    createProgressBar();
-    showSteps();
-
     // display on page
     formContainer.append(injectedWrapper, modal);
     document.body.appendChild(overlay);
-
     modalBody.append(progressWrapper, hubSpotForm, modalStep3);
     modalFooter.append(modalBack, modalNext);
 
     formContainer.style.visibility = 'visible';
+
+    createProgressBar();
+    showSteps();
+    initEventListeners();
   };
 })();
