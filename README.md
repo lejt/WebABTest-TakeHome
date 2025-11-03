@@ -2,6 +2,13 @@
 
 This project implements three complex front-end tasks using pure JavaScript (within an IIFE structure), CSS injection, and the MutationObserver API to ensure persistence and functionality across all modern browsers and viewport sizes, particularly on Single Page Applications (SPA).
 
+### Script Injection Steps
+
+1. copy and paste style.js into dev console
+2. copy and paste task1.js in https://conversion.com/contact/
+3. copy and paste task2.js in https://conversion.com/blog/
+4. copy and paste task3.js in https://liftmap.com/
+
 ## ⚙️ Core Technical Approach
 
 1. Flicker Prevention and Scope Isolation (IIFE)
