@@ -4,10 +4,10 @@ This project implements three complex front-end tasks using pure JavaScript (wit
 
 ### Script Injection Steps
 
-1. copy and paste style.js into dev console
-2. copy and paste task1.js in https://conversion.com/contact/
-3. copy and paste task2.js in https://conversion.com/blog/
-4. copy and paste task3.js in https://liftmap.com/
+In the dev console:
+1. copy and paste style.js + task1.js at https://conversion.com/contact/
+2. copy and paste style.js + task2.js at https://conversion.com/blog/
+3. copy and paste style.js + task3.js at https://liftmap.com/
 
 ## ⚙️ Core Technical Approach
 
