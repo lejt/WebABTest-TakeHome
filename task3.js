@@ -12,6 +12,8 @@
   const VALUE_PROP_4 = 'Standing or scaling an experimentation program';
   const VALUE_PROP_5 = 'Advanced customer research';
 
+  let observer = null;
+
   const createBulletPoint = (str) => {
     const pointWrapper = document.createElement('div');
     const checkWrapper = document.createElement('div');
@@ -26,28 +28,40 @@
     return pointWrapper;
   };
 
-  // DOM changes applied here and function is called everytime there is change of
-  // elements in SPA (route change)
-  const applyDomChanges = () => {
-    const heroContainer = document.querySelector(HERO_CONTAINER);
-    const header = document.querySelector(`${HERO_CONTAINER} ${HERO_HEADER}`);
-    const buttonContainer = document.querySelector(HERO_BUTTONS);
-    const allButtons = buttonContainer.querySelectorAll('button');
-    const infoSection = document.querySelector(HERO_WHY_SECTION);
-
-    heroContainer.setAttribute(AB_ELEMENT_ID, 'header-container');
-
+  /* 
+    DOM changes applied here and function is called everytime there is change of elements in SPA (route change)
+  */
+  const applyDomChanges = (heroContainer) => {
     // check if valuePropWrapper is added to current DOM
-    const alreadyApplied = document.querySelector(
+    const alreadyApplied = heroContainer.querySelector(
       `[${AB_ELEMENT_ID}="value-prop-list"]`
     );
     if (alreadyApplied) {
       return;
     }
 
-    if (!header || !buttonContainer || !heroContainer) {
+    // if (!header || !buttonContainer || !heroContainer) {
+    //   return;
+    // }
+
+    // const heroContainer = document.querySelector(HERO_CONTAINER);
+
+    // if (!heroContainer) {
+    //   return;
+    // }
+
+    const header = heroContainer.querySelector(
+      `${HERO_CONTAINER} ${HERO_HEADER}`
+    );
+    const buttonContainer = heroContainer.querySelector(HERO_BUTTONS);
+    const allButtons = buttonContainer.querySelectorAll('button');
+    const infoSection = document.querySelector(HERO_WHY_SECTION);
+
+    if (!header || !buttonContainer) {
       return;
     }
+
+    heroContainer.setAttribute(AB_ELEMENT_ID, 'header-container');
 
     const valuePropWrapper = document.createElement('div');
     valuePropWrapper.setAttribute(AB_ELEMENT_ID, 'value-prop-list');
@@ -73,13 +87,16 @@
 
       const videoButtonClone = originalVideoButton.cloneNode(true);
       const nestedSpan = videoButtonClone.querySelector('span');
-      videoButtonClone.removeChild(nestedSpan);
+      if (nestedSpan) {
+        videoButtonClone.removeChild(nestedSpan);
+      }
       originalVideoButton.replaceWith(videoButtonClone);
 
       demoButton.textContent = CONTACT_US;
 
       if (infoSection) {
-        videoButtonClone.addEventListener('click', (event) => {
+        videoButtonClone.addEventListener('click', (e) => {
+          e.preventDefault();
           infoSection.scrollIntoView({ behavior: 'smooth' });
         });
       }
@@ -91,25 +108,32 @@
     const targetNode = document.body;
     const config = { childList: true, subtree: true };
 
-    const callback = (mutationsList, observer) => {
+    const callback = (mutationsList, currentObserver) => {
       for (const mutation of mutationsList) {
         if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-          if (document.querySelector(HERO_CONTAINER)) {
-            observer.disconnect();
+          const heroContainer = document.querySelector(HERO_CONTAINER);
+          if (heroContainer) {
+            // disconnect observer after targetted element appear so it does not continue running
+            currentObserver.disconnect();
 
             applyDomChanges();
 
-            observer.observe(targetNode, config);
+            currentObserver.observe(targetNode, config);
             return;
           }
         }
       }
     };
 
-    const observer = new MutationObserver(callback);
+    observer = new MutationObserver(callback);
     observer.observe(targetNode, config);
   };
 
-  applyDomChanges();
-  initMutationObserver();
+  const initialHeroContainer = document.querySelector(HERO_CONTAINER);
+  if (initialHeroContainer) {
+    applyDomChanges(initialHeroContainer);
+  } else {
+    // if hero container not present, watch for its arrival
+    initMutationObserver();
+  }
 })();

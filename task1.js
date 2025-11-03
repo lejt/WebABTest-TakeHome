@@ -1,6 +1,7 @@
 (() => {
   // constants
   const AB_ELEMENT_ID = 'data-ab-element-id';
+  const WRAPPER = '.contact-form__inner';
   const FORM_PARENT = '.contact-form__form';
   const FORM_SELECTOR = '.hbspt-form';
   const FORM_STEP_1_FIELDS = '.form-columns-2, .hs_email';
@@ -74,18 +75,23 @@
     modalHeader.appendChild(modalClose);
     modal.append(modalHeader, modalBody, modalFooter);
 
-    modalClose.addEventListener('click', () => modal.close());
+    modalClose.addEventListener('click', () => {
+      modal.close();
+    });
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.close();
+      }
+    });
 
     return { modal, modalHeader, modalBody, modalFooter, modalClose };
   };
 
   const initABExperiment = (form) => {
-    // hide original form
-    form.style.display = 'none';
-
     // Hubspot form elements
     const hubSpotForm = form;
-    hubSpotForm.style.display = 'block'; // must display for Hubspot children to be rendered
+
+    const experimentWrapper = document.querySelector(WRAPPER);
     const formContainer = document.querySelector(FORM_PARENT);
     const modalStep1Fields = hubSpotForm.querySelectorAll(FORM_STEP_1_FIELDS);
     const modalStep2Fields = hubSpotForm.querySelectorAll(FORM_STEP_2_FIELDS);
@@ -97,6 +103,7 @@
     if (!formContainer) {
       return;
     }
+    experimentWrapper.classList.add('injected-height-size');
 
     const overlay = document.createElement('div');
     const progressWrapper = document.createElement('div');
@@ -123,21 +130,15 @@
     modalStep3.appendChild(modalStep3Message);
 
     let modalCurrentStep = 1;
-    const stepContainers = [hubSpotForm, hubSpotForm, modalStep3];
     const validationFieldSets = [modalStep1Fields, modalStep2Fields];
     const stepValidationStatus = [false, false, false];
 
     const initEventListeners = () => {
       injectedButton.addEventListener('click', () => {
         modal.showModal();
+        hubSpotForm.style.visibility = '';
       });
 
-      document.addEventListener('click', (e) => {
-        const clickedInsideInjectedWrapper = formContainer.contains(e.target);
-        if (!clickedInsideInjectedWrapper) {
-          overlay.remove();
-        }
-      });
       overlay.addEventListener('click', (e) => {
         if (!injectedWrapper.contains(e.target)) {
           overlay.remove();

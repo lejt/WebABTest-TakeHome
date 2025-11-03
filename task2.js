@@ -32,7 +32,7 @@
     <div class="controls-container">
       <div class="pagination-controls">
           <button class="nav-arrow left">&lt;</button>
-          <span class="page-counter">1/1</span>
+          <span class="page-counter">...</span>
           <button class="nav-arrow right">&gt;</button>
       </div>
       <!-- Chevron points UP when closed (ready to open UP) -->
@@ -61,22 +61,8 @@
   const closeDrawer = () => {
     if (stickyDrawerContainer.classList.contains('is-open')) {
       stickyDrawerContainer.classList.remove('is-open');
-
-      setTimeout(() => {
-        overlay.remove();
-        document.body.style.overflow = '';
-
-        const scrollHeight = document.documentElement.scrollHeight;
-        const clientHeight = window.innerHeight;
-
-        // handle scroll correction AFTER the 500ms CSS transition finishes
-        const newMaxScroll = scrollHeight - clientHeight;
-        const currentScrollPosition = window.scrollY;
-
-        if (currentScrollPosition > newMaxScroll && newMaxScroll >= 0) {
-          window.scrollTo(0, newMaxScroll);
-        }
-      }, 500);
+      overlay.remove();
+      document.body.style.overflow = '';
     }
   };
 
@@ -91,7 +77,8 @@
 
   const updatePaginationUI = () => {
     cardsPerPage = getCardsPerPage();
-    totalPages = Math.ceil(POKEMON_COUNT / cardsPerPage);
+    totalPages =
+      pokemonData.length > 0 ? Math.ceil(pokemonData.length / cardsPerPage) : 1;
 
     currentPage = Math.min(currentPage, totalPages);
     currentPage = Math.max(currentPage, 1);
@@ -100,23 +87,41 @@
     const prevArrow = stickyDrawerHeader.querySelector('.nav-arrow.left');
     const nextArrow = stickyDrawerHeader.querySelector('.nav-arrow.right');
 
+    const totalCards =
+      pokemonData.length > 0 ? pokemonData.length : POKEMON_COUNT;
+
     if (pageCounter) {
-      pageCounter.textContent = `${currentPage}/${totalPages}`;
+      if (isLoading) {
+        pageCounter.textContent = '...';
+      } else {
+        pageCounter.textContent = `${currentPage}/${totalPages}`;
+      }
     }
+
+    const isDisabled = isLoading || totalPages <= 1;
+
     if (prevArrow) {
-      prevArrow.classList.toggle('is-disabled', currentPage === 1);
+      prevArrow.classList.toggle(
+        'is-disabled',
+        isDisabled || currentPage === 1
+      );
     }
     if (nextArrow) {
-      nextArrow.classList.toggle('is-disabled', currentPage === totalPages);
+      nextArrow.classList.toggle(
+        'is-disabled',
+        isDisabled || currentPage === totalPages
+      );
     }
 
     const targetCardIndex = (currentPage - 1) * cardsPerPage;
     const targetCard = sliderWrapper.children[targetCardIndex];
 
+    // use calculated scrollLeft for precision
     if (targetCard) {
-      targetCard.scrollIntoView({
+      const targetScrollLeft = targetCard.offsetLeft - sliderWrapper.offsetLeft;
+      sliderWrapper.scrollTo({
+        left: targetScrollLeft,
         behavior: 'smooth',
-        inline: 'start',
       });
     } else {
       sliderWrapper.scrollLeft = 0;
@@ -192,11 +197,13 @@
     const isDrawerOpen = stickyDrawerContainer.classList.contains('is-open');
     if (!isDrawerOpen) return;
 
+    const SCROLL_BUFFER = 5;
     const scrollHeight = document.documentElement.scrollHeight;
     const clientHeight = window.innerHeight;
     const currentScrollPosition = window.scrollY;
 
-    if (currentScrollPosition + clientHeight >= scrollHeight - 1) {
+    // close if the user has scrolled to +/- buffer distance of page bottom
+    if (currentScrollPosition + clientHeight >= scrollHeight - SCROLL_BUFFER) {
       closeDrawer();
     }
   };
