@@ -13,6 +13,8 @@
   const VALUE_PROP_5 = 'Advanced customer research';
 
   let observer = null;
+  let lastAppliedTime = 0;
+  const DEBOUNCE_MS = 300;
 
   const createBulletPoint = (str) => {
     const pointWrapper = document.createElement('div');
@@ -28,27 +30,34 @@
     return pointWrapper;
   };
 
-  /* 
-    DOM changes applied here and function is called everytime there is change of elements in SPA (route change)
-  */
   const applyDomChanges = (heroContainer) => {
-    // check if valuePropWrapper is added to current DOM
-    const alreadyApplied = heroContainer.querySelector(
-      `[${AB_ELEMENT_ID}="value-prop-list"]`
-    );
-    if (alreadyApplied) {
+    if (!heroContainer) {
       return;
     }
 
-    // if (!header || !buttonContainer || !heroContainer) {
-    //   return;
-    // }
+    // debounce to prevent rapid re-application
+    const now = Date.now();
+    if (now - lastAppliedTime < DEBOUNCE_MS) {
+      return;
+    }
+    lastAppliedTime = now;
 
-    // const heroContainer = document.querySelector(HERO_CONTAINER);
+    // clean old injections before re-applying
+    const oldValuePropList = heroContainer.querySelector(
+      `[${AB_ELEMENT_ID}="value-prop-list"]`
+    );
+    if (oldValuePropList) {
+      oldValuePropList.remove();
+    }
 
-    // if (!heroContainer) {
-    //   return;
-    // }
+    // clean old button to remove stale event listeners
+    const oldVideoButton = heroContainer.querySelector(
+      `${HERO_BUTTONS} button:nth-child(2)`
+    );
+    if (oldVideoButton) {
+      const freshVideoButton = oldVideoButton.cloneNode(true);
+      oldVideoButton.replaceWith(freshVideoButton);
+    }
 
     const header = heroContainer.querySelector(
       `${HERO_CONTAINER} ${HERO_HEADER}`
@@ -113,12 +122,8 @@
         if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
           const heroContainer = document.querySelector(HERO_CONTAINER);
           if (heroContainer) {
-            // disconnect observer after targetted element appear so it does not continue running
-            currentObserver.disconnect();
-
-            applyDomChanges();
-
-            currentObserver.observe(targetNode, config);
+            // keep observer alive instead of disconnecting to catch all SPA re-renders
+            applyDomChanges(heroContainer);
             return;
           }
         }
@@ -132,8 +137,8 @@
   const initialHeroContainer = document.querySelector(HERO_CONTAINER);
   if (initialHeroContainer) {
     applyDomChanges(initialHeroContainer);
+    initMutationObserver();
   } else {
-    // if hero container not present, watch for its arrival
     initMutationObserver();
   }
 })();

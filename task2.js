@@ -8,6 +8,7 @@
   // API constants
   const POKEMON_COUNT = 10;
   const POKEMON_URL = `https://pokeapi.co/api/v2/pokemon?limit=${POKEMON_COUNT}`;
+  const TESTING_DELAY_MS = 2000; // Set to 0 to disable
   // media width
   const BREAKPOINTS = {
     MOBILE: 0,
@@ -45,6 +46,7 @@
   let cardsPerPage = 1;
   let pokemonData = [];
   let isLoading = true;
+  let hasDataBeenFetched = false;
 
   const debounce = (func, wait) => {
     let timeout;
@@ -71,6 +73,13 @@
       document.body.appendChild(overlay);
 
       stickyDrawerContainer.classList.add('is-open');
+
+      // lazy load data on first open
+      if (!hasDataBeenFetched) {
+        fetchPokemonData();
+        hasDataBeenFetched = true;
+      }
+
       updatePaginationUI();
     }
   };
@@ -177,11 +186,18 @@
       button.textContent = 'View Details';
       toolTipContent.textContent = `Weight: ${data.weight * 1000} grams`;
     } else {
-      slideTitle.textContent = 'Loading...';
-      description.textContent = 'Fetching data from API...';
-      imageContainer.textContent = 'Image Slot';
-      button.textContent = '...';
-      toolTipContent.textContent = 'Loading...';
+      // skeleton loading state
+      card.classList.add('skeleton-loading');
+      slideTitle.className = 'skeleton-line skeleton-title';
+      slideTitle.textContent = '';
+      imageContainer.className = 'skeleton-image';
+      imageContainer.textContent = '';
+      description.className = 'skeleton-line skeleton-description';
+      description.textContent = '';
+      button.className = 'skeleton-line skeleton-button';
+      button.textContent = '';
+      toolTipContent.textContent = '';
+      toolTip.style.visibility = 'hidden';
     }
 
     toolTip.textContent = 'ⓘ';
@@ -210,6 +226,9 @@
 
   const fetchPokemonData = async () => {
     isLoading = true;
+    populateSlider();
+    updatePaginationUI();
+
     try {
       const response = await fetch(POKEMON_URL);
       if (!response.ok) throw new Error('Failed to fetch Pokémon list');
@@ -230,6 +249,11 @@
       });
 
       pokemonData = await Promise.all(jsonPromises);
+
+      // TESTING: Add artificial delay to see skeleton UI
+      if (TESTING_DELAY_MS > 0) {
+        await new Promise((resolve) => setTimeout(resolve, TESTING_DELAY_MS));
+      }
     } catch (error) {
       console.error('API Error: Could not load Pokémon data.', error);
     } finally {
@@ -252,7 +276,7 @@
         sliderWrapper.appendChild(createCard(data));
       });
     } else {
-      // Show a single error card if fetch failed completely
+      // show a single error card if fetch failed completely
       const errorCard = createCard({
         name: 'Error',
         id: 'N/A',
@@ -308,5 +332,4 @@
   document.body.appendChild(stickyDrawerContainer);
 
   initListeners();
-  fetchPokemonData();
 })();

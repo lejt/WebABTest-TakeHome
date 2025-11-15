@@ -22,13 +22,29 @@
   const MODAL_SUCCESS = 'You have submitted your information successfully.';
 
   // Wait for async HubSpot form to render
-  const waitForHubspotForm = setInterval(() => {
+  const waitForHubspotForm = () => {
     const form = document.querySelector(FORM_SELECTOR);
-    if (!form) return;
+    if (form) {
+      initABExperiment(form);
+      return;
+    }
 
-    clearInterval(waitForHubspotForm);
-    initABExperiment(form);
-  }, 300);
+    const observer = new MutationObserver(() => {
+      const form = document.querySelector(FORM_SELECTOR);
+      if (form) {
+        observer.disconnect();
+        initABExperiment(form);
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Timeout fallback (10s) in case form never loads
+    setTimeout(() => {
+      observer.disconnect();
+      console.error('HubSpot form failed to load');
+    }, 10000);
+  };
 
   const createLandingContent = () => {
     const injectedWrapper = document.createElement('div');
@@ -147,6 +163,29 @@
 
       modalNext.addEventListener('click', () => handleStepChange(1));
       modalBack.addEventListener('click', () => handleStepChange(-1));
+
+      // prevent enter key on step 1, allow form submit on step 2
+      hubSpotForm.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && modalCurrentStep === 1) {
+          e.preventDefault();
+        }
+      });
+
+      // listen for form submit (covers both button click and enter key on step 2)
+      hubSpotForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const step2Fields = validationFieldSets[1];
+
+        if (validateFields(step2Fields)) {
+          stepValidationStatus[1] = true;
+          stepValidationStatus[2] = true;
+          modalCurrentStep = 3;
+          showSteps();
+        } else {
+          console.warn('Step 2 validation failed on submit.');
+        }
+      });
     };
 
     const handleStepChange = (increment) => {
@@ -320,24 +359,6 @@
 
     if (submitButton) {
       submitButton.value = 'Submit';
-      submitButton.addEventListener('click', (e) => {
-        e.preventDefault();
-
-        const step2Fields = validationFieldSets[1];
-
-        if (validateFields(step2Fields)) {
-          stepValidationStatus[1] = true;
-
-          // dispatch a native 'submit' event to trigger HubSpot's internal AJAX handler
-          hubSpotForm.dispatchEvent(new Event('submit', { bubbles: true }));
-
-          stepValidationStatus[2] = true;
-          modalCurrentStep = 3;
-          showSteps();
-        } else {
-          console.warn('Step 2 validation failed on submit.');
-        }
-      });
     }
 
     // display on page
@@ -352,4 +373,6 @@
     showSteps();
     initEventListeners();
   };
+
+  waitForHubspotForm();
 })();
